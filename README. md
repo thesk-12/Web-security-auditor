@@ -1,0 +1,81 @@
+# Automated Web Security Auditor (Headers & CORS)
+
+An automated Python security auditing tool designed to inspect web endpoints for security header posture, information disclosure headers, and Cross-Origin Resource Sharing (CORS) misconfigurations.
+
+## Features
+- **Security Headers Audit**: Verifies compliance with OWASP recommendations (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy).
+- **Information Leakage Detection**: Detects banner and technology disclosure headers (`Server`, `X-Powered-By`, etc.).
+- **Dynamic CORS Probing**:
+  - Arbitrary Origin reflection tests
+  - `null` Origin bypass verification
+  - Insecure Credential Sharing checks (`Access-Control-Allow-Credentials: true` with reflected origins)
+- **JSON Report Export**: Generates machine-readable output for SIEM ingestion or automated CI/CD verification.
+- **Includes Vulnerable Test Target**: Ships with a mock local API to simulate and demonstrate findings.
+
+---
+
+## Installation & Setup
+
+1. Clone this repository:
+   ```bash
+   git clone [https://github.com/](https://github.com/)<your-username>/web-security-auditor.git
+   cd web-security-auditor
+   ```
+
+2. Create a virtual environment and install dependencies:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate    # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+---
+
+## Usage
+
+### 1. Run the local vulnerable target (Optional Demo)
+In one terminal window, start the local test target:
+```bash
+python test_server.py
+```
+This launches a test server at `http://127.0.0.1:5000`.
+
+### 2. Audit a website or local server
+In another terminal, run the scanner:
+```bash
+python scanner.py [http://127.0.0.1:5000](http://127.0.0.1:5000) -o report.json
+```
+
+Or scan any public domain:
+```bash
+python scanner.py [https://example.com](https://example.com) -o example_report.json
+```
+
+---
+
+## Sample Output
+
+```text
+=== Running Web Security Auditor on [http://127.0.0.1:5000](http://127.0.0.1:5000) ===
+
+[*] Auditing HTTP response headers...
+[!] Missing Security Header: Strict-Transport-Security [HIGH]
+[!] Missing Security Header: Content-Security-Policy [HIGH]
+[!] Missing Security Header: X-Frame-Options [MEDIUM]
+[!] Missing Security Header: X-Content-Type-Options [LOW]
+[!] Information Disclosure: Server: Apache/2.4.41 (Ubuntu)
+[!] Information Disclosure: X-Powered-By: Express/NodeJS-Mock
+
+[*] Testing for CORS misconfigurations...
+[CRITICAL/HIGH] Arbitrary Origin Reflection detected! Origin: [https://attacker-domain.evil](https://attacker-domain.evil) | Credentials: true
+[CRITICAL/HIGH] Null Origin Reflection detected! Origin: null | Credentials: true
+
+[✔] Scan complete. Report saved to report.json
+```
+
+---
+
+## Security Mitigation Recommendations
+- **Strict-Transport-Security**: Configure web servers to send `Strict-Transport-Security: max-age=31536000; includeSubDomains`.
+- **CORS Configuration**: Avoid dynamically reflecting incoming `Origin` headers. Maintain an explicit allowlist of trusted origins and avoid pairing `Access-Control-Allow-Credentials: true` with dynamic origins.
+- **Header Sanitization**: Strip identifying version headers (`Server`, `X-Powered-By`) in reverse proxies (e.g., NGINX, Cloudflare).
